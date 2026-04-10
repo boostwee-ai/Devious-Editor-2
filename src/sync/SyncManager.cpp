@@ -1069,22 +1069,9 @@ void SyncManager::applyLevelSettings(const LevelSettingsData& data) {
         editor->m_editorUI->updateButtons();
     }
     
-    // gameplay
-    level->m_twoPlayerMode = data.twoPlayerMode;
-    settings->m_startMode = data.gamemode;
-    
-    // Set platformer mode
-    level->m_isPlatformer = data.isPlatformer;
-    
-    settings->m_startSpeed = data.speed;
-
-    if (editor->m_editorUI){
-        editor->m_editorUI->updateButtons();
-    }
-    
     // update visuals
     editor->updateOptions();
-    editor->updateVisibility();
+    editor->updateVisibility(0.0f);
     
     if (level->m_songID != 0) {
         // custom song
