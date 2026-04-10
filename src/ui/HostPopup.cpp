@@ -1,5 +1,6 @@
 #include "HostPopup.hpp"
 #include "../network/NetworkManager.hpp"
+#include "../network/DiscoveryManager.hpp"
 #include "../sync/SyncManager.hpp"
 #include <fmt/format.h>
 
@@ -45,7 +46,7 @@ bool HostPopup::init(){
     this->m_mainLayer->addChild(m_ipLabel);
     
     if (g_isHost && g_isInSession){
-        m_ipLabel->setString(fmt::format("127.0.0.1:{}", g_network->m_port).c_str());
+        m_ipLabel->setString(fmt::format("{}:{}", DiscoveryManager::getLocalIP(), g_network->m_port).c_str());
     }
 
     // host button
@@ -94,7 +95,7 @@ void HostPopup::onStartHost(CCObject*){
 
         // for now, just show local ip
         // it should show local ip, or hamachi ip (or whatever the user is using)
-        m_ipLabel->setString("127.0.0.1:7777");
+        m_ipLabel->setString(fmt::format("{}:7777", DiscoveryManager::getLocalIP()).c_str());
 
         g_sync->trackExistingObjects();
         

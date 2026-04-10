@@ -3,6 +3,7 @@
 #include "../sync/SyncManager.hpp"
 #include "JoinPopup.hpp"
 #include "../network/NetworkManager.hpp"
+#include "../network/DiscoveryManager.hpp"
 
 extern NetworkManager* g_network;
 extern SyncManager* g_sync;
@@ -60,7 +61,60 @@ bool JoinPopup::init(){
     menu->setPosition(0,0);
     this->m_mainLayer->addChild(menu);
 
+    // discovery UI
+    auto discLabel = CCLabelBMFont::create("Local Sessions:", "goldFont.fnt");
+    discLabel->setScale(0.5f);
+    discLabel->setPosition(ccp(winSize.width / 2, winSize.height / 2 - 70));
+    this->m_mainLayer->addChild(discLabel);
+
+    m_sessionMenu = CCMenu::create();
+    m_sessionMenu->setPosition(ccp(winSize.width / 2, winSize.height / 2 - 100));
+    this->m_mainLayer->addChild(m_sessionMenu);
+
+    // start listening
+    DiscoveryManager::get().startListening();
+    this->schedule(schedule_selector(JoinPopup::onUpdateSessions), 1.0f);
+
     return true;
+}
+
+void JoinPopup::onUpdateSessions(float dt) {
+    m_sessionMenu->removeAllChildren();
+
+    auto sessions = DiscoveryManager::get().getAvailableSessions();
+    float yOffset = 0;
+
+    if (sessions.empty()) {
+        auto label = CCLabelBMFont::create("Scanning...", "chatFont.fnt");
+        label->setScale(0.5f);
+        label->setOpacity(100);
+        m_sessionMenu->addChild(label);
+    } else {
+        for (const auto& session : sessions) {
+            auto btn = CCMenuItemSpriteExtra::create(
+                ButtonSprite::create(fmt::format("{} ({}:{})", session.username, session.ip, session.port).c_str(), "chatFont.fnt", "GJ_button_05.png", 0.6f),
+                this,
+                menu_selector(JoinPopup::OnJoin) // Re-use OnJoin if we set the input, but better to have a separate one
+            );
+            
+            // Actually, let's just make it fill the input
+            auto fillBtn = CCMenuItemSpriteExtra::create(
+                ButtonSprite::create(fmt::format("{} ({})", session.username, session.ip).c_str(), "chatFont.fnt", "GJ_button_04.png", 0.5f),
+                [this, session](auto) {
+                    m_ipInput->setString(fmt::format("{}:{}", session.ip, session.port).c_str());
+                }
+            );
+
+            fillBtn->setPositionY(yOffset);
+            m_sessionMenu->addChild(fillBtn);
+            yOffset -= 25.0f;
+        }
+    }
+}
+
+void JoinPopup::onClose(CCObject* sender) {
+    DiscoveryManager::get().stopListening();
+    Popup::onClose(sender);
 }
 
 void JoinPopup::OnJoin(CCObject*){

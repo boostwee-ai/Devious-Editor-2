@@ -1,5 +1,5 @@
-#include "Packets.hpp"
 #include "NetworkManager.hpp"
+#include "DiscoveryManager.hpp"
 #include <Geode/Geode.hpp>
 #include <Geode/binding/GJAccountManager.hpp>
 
@@ -28,6 +28,10 @@ bool NetworkManager::host(uint16_t port){
     addPeer(1, getUsername());
 
     log::info("Hosting on port {}", port);
+
+    // start broadcasting
+    DiscoveryManager::get().startBroadcasting(getUsername(), port);
+
     return true;
 }
 
@@ -36,6 +40,10 @@ bool NetworkManager::stopHosting(){
         enet_host_destroy(m_host);
         m_host = nullptr;
         m_isHost = false;
+        
+        // stop broadcasting
+        DiscoveryManager::get().stopBroadcasting();
+
         return true;
     }
     return false;
