@@ -717,8 +717,8 @@ void SyncManager::reciveFullState(const uint8_t* data, size_t size) {
 
         case PacketType::REQUEST_FULL_STATE: {
             if (g_isHost) {
-                log::info("Received full state request from peer {}, sending...", header.senderID);
-                this->sendFullState(header.senderID);
+                log::info("Received full state request from peer {}, sending...", header->senderID);
+                this->sendFullState(header->senderID);
             }
             break;
         }
