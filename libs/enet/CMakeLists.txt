@@ -9,8 +9,13 @@ set(ENET_SOURCES
     packet.c
     peer.c
     protocol.c
-    win32.c
 )
+
+if(WIN32)
+    list(APPEND ENET_SOURCES win32.c)
+else()
+    list(APPEND ENET_SOURCES unix.c)
+endif()
 
 add_library(enet STATIC ${ENET_SOURCES})
 
