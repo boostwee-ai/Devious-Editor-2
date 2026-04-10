@@ -1,6 +1,7 @@
 #include "HostPopup.hpp"
 #include "../network/NetworkManager.hpp"
 #include "../sync/SyncManager.hpp"
+#include <fmt/format.h>
 
 extern NetworkManager* g_network;
 extern SyncManager* g_sync;
@@ -44,7 +45,7 @@ bool HostPopup::init(){
     this->m_mainLayer->addChild(m_ipLabel);
     
     if (g_isHost && g_isInSession){
-        m_ipLabel->setString(std::format("127.0.0.1:{}", g_network->m_port).c_str());
+        m_ipLabel->setString(fmt::format("127.0.0.1:{}", g_network->m_port).c_str());
     }
 
     // host button
