@@ -5,6 +5,7 @@
 
 extern NetworkManager* g_network;
 extern bool g_isHost;
+extern bool g_isInSession;
 
 SyncManager::SyncManager() : m_objectCounter(0), m_lastUpdateTimestamp(0) {
     m_userID = g_network->getPeerID();
