@@ -1131,11 +1131,10 @@ void SyncManager::trackExistingObjects(){
 }
 
 void SyncManager::updatePlayerSync(float dt, LevelEditorLayer* editorLayer, bool stopPlaytest){
-    if (!editorLayer) return;
+    if (!editorLayer || !editorLayer->m_objectLayer) return;
     
     auto plr = editorLayer->m_player1;
     if (!plr){
-        log::error("plr not found!!!");
         return;
     }
 
@@ -1147,7 +1146,7 @@ void SyncManager::updatePlayerSync(float dt, LevelEditorLayer* editorLayer, bool
     }
     
     for (auto& [userId, remotePlr] : m_remotePlayers){
-        if (remotePlr.player && !remotePlr.player->m_isDead){
+        if (remotePlr.player && remotePlr.player->getParent() && !remotePlr.player->m_isDead){
             remotePlr.player->setVisible(true);
         }
     }
@@ -1157,8 +1156,7 @@ void SyncManager::sendPlayerPosition(LevelEditorLayer* editorLayer, bool stopPla
     if (!editorLayer) return;
     
     auto plr = editorLayer->m_player1;
-    if (!plr){
-        log::error("plr not found while sending pos!!!");
+    if (!plr || !plr->getParent()){
         return;
     }
 
@@ -1207,11 +1205,13 @@ void SyncManager::onRemotePlayerPosition(const PlayerPositionPacket& packet, Lev
     if (stopPlaytest){
         if (it != m_remotePlayers.end()){
             auto remotePlayer = it->second.player;
-            if (remotePlayer){
+            if (remotePlayer && remotePlayer->getParent()){
                 remotePlayer->setVisible(false);
-                remotePlayer->destroyObject();
+                remotePlayer->removeFromParent();
+                it->second.player = nullptr;
             }
         }
+        return;
     }
 
     if (it == m_remotePlayers.end()) {
@@ -1267,7 +1267,7 @@ void SyncManager::onRemotePlayerPosition(const PlayerPositionPacket& packet, Lev
         if (packet.isDead) {
             remotePlayer->m_isDead = true;
             remotePlayer->setVisible(false);
-        } else {
+        } else if (remotePlayer->getParent()) {
             remotePlayer->m_isDead = false;
             remotePlayer->setVisible(true);
         }
