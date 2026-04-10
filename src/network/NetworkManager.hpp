@@ -31,7 +31,7 @@ class NetworkManager{
             return 0;
         }
 
-        void sendPacket(const void* data, size_t size);
+        void sendPacket(const void* data, size_t size, uint32_t targetPeerID = 0);
         void poll();
 
         void setOnRecive(std::function<void(const uint8_t*, size_t)> callback);

@@ -646,14 +646,11 @@ void SyncManager::onRemoteObjectModified(const ObjectStringPacket& packet) {
     m_applyingRemoteChanges = false;
 }
 
-void SyncManager::sendFullState() {
+void SyncManager::sendFullState(uint32_t targetPeerID) {
     auto editor = getEditorLayer();
     if (!editor) return;
     
-    //gd::string gdLevelString = editor->getLevelString();
-    //std::string lvlString = std::string(gdLevelString);
-
-    log::info("Sending full level string");
+    log::info("Sending full level state to {}", targetPeerID != 0 ? std::to_string(targetPeerID) : "everyone");
 
     auto allObjects = editor->m_objects;
     if (!allObjects) return;
@@ -666,7 +663,6 @@ void SyncManager::sendFullState() {
             trackObject(uid, obj);
         }
         
-        // send this object
         gd::string gdString = obj->getSaveString(nullptr);
         std::string objString = std::string(gdString);
         
@@ -683,17 +679,12 @@ void SyncManager::sendFullState() {
         strncpy(packet.objectString, objString.c_str(), packet.stringLength);
         packet.objectString[packet.stringLength] = '\0';
         
-        g_network->sendPacket(&packet, sizeof(packet));
-        
-        // small delay because meow
-        //if (i % 10 == 0) {
-        //    std::this_thread::sleep_for(std::chrono::milliseconds(10));
-        //}
+        g_network->sendPacket(&packet, sizeof(packet), targetPeerID);
     }
     
     log::info("Sent {} objects", allObjects->count());
 
-    onLocalLevelSettingsChanged();
+    onLocalLevelSettingsChanged(targetPeerID);
 }
 
 void SyncManager::handlePacket(const uint8_t* data, size_t size) {
@@ -708,6 +699,8 @@ void SyncManager::handlePacket(const uint8_t* data, size_t size) {
             if (g_isHost){
                 g_network->sendLobbyState(packet->header.senderID);
                 g_network->broadcastPeerJoined(packet->header.senderID, packet->username);
+                // initial sync
+                this->sendFullState(packet->header.senderID);
             }
             break;
         }
@@ -1023,13 +1016,6 @@ LevelSettingsData SyncManager::extractLevelSettings(){
     // gameplay settings
     data.isPlatformer = level->isPlatformer();
     data.gamemode = settings->m_startMode;
-    //data.miniMode = settings->m_isMini;
-    //data.dualMode = settings->m_isDualMode;
-    data.twoPlayerMode = level->m_twoPlayerMode;
-    data.speed = settings->m_startSpeed;
-
-    // guideline
-    //data.guidelineSpacing = settings->m_guidelineSpacing;
 
     return data;
 }
@@ -1076,16 +1062,29 @@ void SyncManager::applyLevelSettings(const LevelSettingsData& data) {
     // gameplay
     level->m_twoPlayerMode = data.twoPlayerMode;
     settings->m_startMode = data.gamemode;
-    //settings->m_isMini = data.miniMode;
-    //settings->m_isDualMode = data.dualMode;
+    level->setPlatformer(data.isPlatformer);
     settings->m_startSpeed = data.speed;
 
-    // guideline
-    //settings->m_guidelineSpacing = data.guidelineSpacing;
-    
     if (editor->m_editorUI){
         editor->m_editorUI->updateButtons();
     }
+    
+    // gameplay
+    level->m_twoPlayerMode = data.twoPlayerMode;
+    settings->m_startMode = data.gamemode;
+    
+    // Set platformer mode
+    level->m_isPlatformer = data.isPlatformer;
+    
+    settings->m_startSpeed = data.speed;
+
+    if (editor->m_editorUI){
+        editor->m_editorUI->updateButtons();
+    }
+    
+    // update visuals
+    editor->updateOptions();
+    editor->updateVisibility();
     
     if (level->m_songID != 0) {
         // custom song
@@ -1110,7 +1109,7 @@ void SyncManager::onRemoteLevelSettingsChanged(const LevelSettingsPacket& packet
     applyLevelSettings(packet.settings);
 }
 
-void SyncManager::onLocalLevelSettingsChanged() {
+void SyncManager::onLocalLevelSettingsChanged(uint32_t targetPeerID) {
     auto editorLayer = LevelEditorLayer::get();
     if (!editorLayer || !editorLayer->m_levelSettings) return;
     LevelSettingsPacket packet;
@@ -1119,7 +1118,7 @@ void SyncManager::onLocalLevelSettingsChanged() {
     packet.header.senderID = g_network->getPeerID();
     packet.settings = extractLevelSettings();
     
-    g_network->sendPacket(&packet, sizeof(packet));
+    g_network->sendPacket(&packet, sizeof(packet), targetPeerID);
     log::info("sent level settings to remote!");
 }
 

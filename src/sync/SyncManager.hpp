@@ -75,7 +75,7 @@ class SyncManager{
         void onLocalSelectionChanged(CCArray* selectedObjects);
 
         // level settings
-        void onLocalLevelSettingsChanged();
+        void onLocalLevelSettingsChanged(uint32_t targetPeerID = 0);
 
         // player sync
         void updatePlayerSync(float dt, LevelEditorLayer* editorLayer, bool stopPlaytest);
@@ -98,7 +98,7 @@ class SyncManager{
         void onRemotePlayerPosition(const PlayerPositionPacket& packet, LevelEditorLayer* editorLayer);
 
         /* --- FULL SYNC --- */
-        void sendFullState();
+        void sendFullState(uint32_t targetPeerID = 0);
         void reciveFullState(const uint8_t* data, size_t size);
         void trackExistingObjects();
         

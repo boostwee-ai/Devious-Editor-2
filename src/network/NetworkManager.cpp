@@ -112,24 +112,33 @@ void NetworkManager::disconnect(){
     }
 }
 
-void NetworkManager::sendPacket(const void* data, size_t size){
+void NetworkManager::sendPacket(const void* data, size_t size, uint32_t targetPeerID){
     if (!m_peer && !m_isHost) return;
 
     ENetPacket* packet = enet_packet_create(data, size, ENET_PACKET_FLAG_RELIABLE);
     if (!packet) return;
 
-    if (m_isHost && m_host->connectedPeers > 0){
-        // dont send packets if no peers connected
-        if (m_host->connectedPeers == 0){
-            enet_packet_destroy(packet);
-            return;
+    if (m_isHost){
+        if (targetPeerID != 0) {
+            auto it = m_connectedPeers.find(targetPeerID);
+            if (it != m_connectedPeers.end()) {
+                enet_peer_send(it->second, 0, packet);
+            } else {
+                enet_packet_destroy(packet);
+            }
+        } else {
+            if (m_host->connectedPeers > 0) {
+                enet_host_broadcast(m_host, 0, packet);
+            } else {
+                enet_packet_destroy(packet);
+            }
         }
-        enet_host_broadcast(m_host, 0, packet);
     } else {
-        if (!m_peer){
-            return;
+        if (m_peer){
+            enet_peer_send(m_peer, 0, packet);
+        } else {
+            enet_packet_destroy(packet);
         }
-        enet_peer_send(m_peer, 0, packet);
     }
 }
 
