@@ -1,0 +1,25 @@
+{
+	"geode": "v5.5.3",
+	"gd": {
+		"win": "2.2074",
+		"android": "2.2074",
+		"mac": "2.2074",
+		"ios": "2.2074"
+	},
+	"id": "zyyedev.multiplayereditor",
+	"name": "Multiplayer Editor",
+	"version": "v0.0.2-alpha",
+	"developer": "ZyyeDev",
+	"description": "Mutliplayer Collab Editor",
+    "resources": {	
+        "sprites": [
+            "resources/*.png"
+        ]
+    },
+	"dependencies": {
+		"geode.node-ids": {
+            "version": ">=1.11.0",
+            "importance": "required"
+        }
+	}
+}
