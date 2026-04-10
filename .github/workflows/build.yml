@@ -34,4 +34,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
             name: Devious-Editor-2-${{ matrix.config.name }}
-            path: ${{ steps.build.outputs.build-output }}
+            path: "**/*.geode"
+            if-no-files-found: error
