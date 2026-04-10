@@ -14,7 +14,7 @@ using namespace geode::prelude;
 struct PendingAction;
 struct RemotePlayer {
     PlayerObject* player;
-    std::string userId;
+    uint32_t userId;
 };
 
 class SyncManager{
@@ -55,6 +55,11 @@ class SyncManager{
         /* -- PLAYER SYNC -- */
         std::map<uint32_t, RemotePlayer> m_remotePlayers;
         float m_lastPlayerSendTime = 0.0f;
+
+        /* -- INSPECTOR -- */
+        std::map<std::string, uint32_t> m_objectOwners;
+        bool m_showOwners = false;
+        CCLabelBMFont* m_ownerLabel = nullptr;
         
     public:
         SyncManager();
@@ -113,6 +118,11 @@ class SyncManager{
         std::string getObjectUid(GameObject* obj);
 
         void cleanUpPlayers();
+
+        // inspector
+        void toggleInspector();
+        bool isInspectorEnabled() const { return m_showOwners; }
+        void updateOwnerInspector(CCPoint mousePos);
         
         uint32_t getUserID() { return SyncManager::m_userID; }
 };

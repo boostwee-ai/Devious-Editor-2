@@ -66,6 +66,12 @@ class $modify(CCScheduler) {
         if (g_isInSession && g_sync){
             auto editorLayer = LevelEditorLayer::get();
             if (editorLayer && editorLayer->m_objectLayer){
+                // Update inspector
+                if (g_sync->isInspectorEnabled()) {
+                    CCPoint worldPos = editorLayer->m_objectLayer->convertToNodeSpace(lastMousePos);
+                    g_sync->updateOwnerInspector(worldPos);
+                }
+
                 if (g_isInSession && g_sync && editorLayer->m_playbackMode == PlaybackMode::Playing) {
                     wasPlaytesting = true;
                     g_sync->updatePlayerSync(dt, editorLayer, false);

@@ -12,6 +12,11 @@ SyncManager::SyncManager() : m_objectCounter(0), m_lastUpdateTimestamp(0) {
     g_network->setOnRecive([this](const uint8_t* data, size_t size){
         this->handlePacket(data, size);
     });
+
+    m_ownerLabel = CCLabelBMFont::create("", "chatFont.fnt");
+    m_ownerLabel->setScale(0.5f);
+    m_ownerLabel->setZOrder(INT_MAX);
+    m_ownerLabel->setVisible(false);
 }
 
 std::string SyncManager::generateUID() {
@@ -507,6 +512,7 @@ void SyncManager::onLocalObjectAdded(GameObject* obj) {
     
     g_network->sendPacket(&packet, sizeof(packet));
     
+    m_objectOwners[uid] = g_network->getPeerID();
     log::info("Sent object {} via string ({})", uid, packet.stringLength);
 }
 
@@ -573,6 +579,7 @@ void SyncManager::onRemoteObjectAdded(const ObjectStringPacket& packet) {
         
         std::string uid(packet.uid);
         trackObject(uid, newObj);
+        m_objectOwners[uid] = packet.header.senderID;
         
         log::info("Created object: {}", uid);
     } else {
@@ -632,6 +639,7 @@ void SyncManager::onRemoteObjectModified(const ObjectStringPacket& packet) {
             editor->m_objects->objectAtIndex(countAfter - 1)
         );
         trackObject(uid, newObj);
+        m_objectOwners[uid] = packet.header.senderID;
         log::info("Updated object: {}", uid);
     }
     
@@ -1131,10 +1139,11 @@ void SyncManager::trackExistingObjects(){
 }
 
 void SyncManager::updatePlayerSync(float dt, LevelEditorLayer* editorLayer, bool stopPlaytest){
-    if (!editorLayer || !editorLayer->m_objectLayer) return;
+    if (!editorLayer) return;
     
     auto plr = editorLayer->m_player1;
     if (!plr){
+        log::error("plr not found!!!");
         return;
     }
 
@@ -1146,7 +1155,7 @@ void SyncManager::updatePlayerSync(float dt, LevelEditorLayer* editorLayer, bool
     }
     
     for (auto& [userId, remotePlr] : m_remotePlayers){
-        if (remotePlr.player && remotePlr.player->getParent() && !remotePlr.player->m_isDead){
+        if (remotePlr.player && !remotePlr.player->m_isDead){
             remotePlr.player->setVisible(true);
         }
     }
@@ -1156,7 +1165,8 @@ void SyncManager::sendPlayerPosition(LevelEditorLayer* editorLayer, bool stopPla
     if (!editorLayer) return;
     
     auto plr = editorLayer->m_player1;
-    if (!plr || !plr->getParent()){
+    if (!plr){
+        log::error("plr not found while sending pos!!!");
         return;
     }
 
@@ -1205,13 +1215,11 @@ void SyncManager::onRemotePlayerPosition(const PlayerPositionPacket& packet, Lev
     if (stopPlaytest){
         if (it != m_remotePlayers.end()){
             auto remotePlayer = it->second.player;
-            if (remotePlayer && remotePlayer->getParent()){
+            if (remotePlayer){
                 remotePlayer->setVisible(false);
-                remotePlayer->removeFromParent();
-                it->second.player = nullptr;
+                // remotePlayer->destroyObject(); // Mac Crash Source
             }
         }
-        return;
     }
 
     if (it == m_remotePlayers.end()) {
@@ -1267,7 +1275,7 @@ void SyncManager::onRemotePlayerPosition(const PlayerPositionPacket& packet, Lev
         if (packet.isDead) {
             remotePlayer->m_isDead = true;
             remotePlayer->setVisible(false);
-        } else if (remotePlayer->getParent()) {
+        } else {
             remotePlayer->m_isDead = false;
             remotePlayer->setVisible(true);
         }
@@ -1278,10 +1286,71 @@ void SyncManager::cleanUpPlayers() {
     for (auto& [userId, remotePlayer] : m_remotePlayers) {
         if (remotePlayer.player) {
             if (remotePlayer.player->getParent()){
+                remotePlayer.player->setVisible(false);
                 remotePlayer.player->removeFromParent();
             }
         }
     }
     m_remotePlayers.clear();
     m_lastPlayerSendTime = 0.0f;
+}
+
+void SyncManager::toggleInspector() {
+    m_showOwners = !m_showOwners;
+    if (!m_showOwners && m_ownerLabel) {
+        m_ownerLabel->setVisible(false);
+    }
+}
+
+void SyncManager::updateOwnerInspector(CCPoint mousePos) {
+    if (!m_showOwners) return;
+
+    auto editor = getEditorLayer();
+    if (!editor || !editor->m_objectLayer) return;
+
+    if (m_ownerLabel->getParent() != editor->m_objectLayer) {
+        if (m_ownerLabel->getParent()) {
+            m_ownerLabel->removeFromParent();
+        }
+        editor->m_objectLayer->addChild(m_ownerLabel);
+        m_ownerLabel->setZOrder(INT_MAX);
+    }
+
+    GameObject* hoveredObj = nullptr;
+    float closestDist = 20.0f; // threshold
+
+    // Simple search for object under mouse
+    for (auto obj : CCArrayExt<GameObject*>(editor->m_objects)) {
+        if (!obj) continue;
+        
+        CCRect rect = obj->boundingBox();
+        if (rect.containsPoint(mousePos)) {
+            hoveredObj = obj;
+            break; 
+        }
+    }
+
+    if (hoveredObj) {
+        std::string uid = getObjectUid(hoveredObj);
+        auto it = m_objectOwners.find(uid);
+        
+        if (it != m_objectOwners.end()) {
+            uint32_t ownerID = it->second;
+            gd::string username = "Unknown";
+            
+            if (ownerID == g_network->getPeerID()) {
+                username = g_network->getUsername();
+            } else if (g_network->m_peersInLobby.contains(ownerID)) {
+                username = g_network->m_peersInLobby[ownerID];
+            }
+
+            m_ownerLabel->setString(fmt::format("Placed by: {}", username).c_str());
+            m_ownerLabel->setPosition(mousePos + ccp(0, 15));
+            m_ownerLabel->setVisible(true);
+        } else {
+            m_ownerLabel->setVisible(false);
+        }
+    } else {
+        m_ownerLabel->setVisible(false);
+    }
 }

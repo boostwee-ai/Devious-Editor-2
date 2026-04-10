@@ -9,6 +9,7 @@ using namespace geode::prelude;
 extern SyncManager* g_sync;
 extern bool g_isInSession;
 extern bool g_isHost;
+extern CCPoint lastMousePos;
 
 void objectModified(GameObject* object){
     if (g_isInSession){
@@ -83,16 +84,51 @@ class $modify(MyLevelEditorLayer, LevelEditorLayer){
     }
 };
 
-class $modify(EditorUI){
+class $modify(MyEditorUI, EditorUI){
     bool init(LevelEditorLayer* editorLayer) {
         if (!EditorUI::init(editorLayer)) return false;
+        
         if (g_isInSession && !g_isHost){
             auto settingsbtn = this->getChildByID("settings-button");
             if (settingsbtn){
                 settingsbtn->setVisible(false);
             }
         }
+
+        auto settingsBtn = this->getChildByID("settings-button");
+        if (settingsBtn) {
+            auto menu = settingsBtn->getParent();
+            
+            auto inspectorSprite = CCSprite::createWithSpriteFrameName("GJ_viewLightBtn_001.png");
+            if (!inspectorSprite) {
+                inspectorSprite = CCSprite::createWithSpriteFrameName("edit_eSelectionFilterBtn_001.png");
+            }
+
+            auto inspectorBtn = CCMenuItemSpriteExtra::create(
+                inspectorSprite,
+                this,
+                menu_selector(MyEditorUI::onInspector)
+            );
+            inspectorBtn->setID("inspector-button");
+            
+            menu->addChild(inspectorBtn);
+            inspectorBtn->setPosition(settingsBtn->getPosition() + ccp(0, 40));
+        }
+
         return true;
+    }
+
+    void onInspector(CCObject* sender) {
+        if (g_sync) {
+            g_sync->toggleInspector();
+            
+            auto btn = static_cast<CCMenuItemSpriteExtra*>(sender);
+            if (g_sync->isInspectorEnabled()) {
+                btn->setColor({0, 255, 0});
+            } else {
+                btn->setColor({255, 255, 255});
+            }
+        }
     }
 
     /* -- TRANSFORM -- */
@@ -151,6 +187,7 @@ class $modify(EditorUI){
 
         if (g_isInSession && g_sync){
             CCPoint glPos = touch->getLocation();
+            lastMousePos = glPos;
 
             auto editorLayer = LevelEditorLayer::get();
             if (!editorLayer) return;
