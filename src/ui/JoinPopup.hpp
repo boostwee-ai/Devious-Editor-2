@@ -5,7 +5,7 @@
 
 using namespace geode::prelude;
 
-class JoinPopup : public geode::Popup<> {
+class JoinPopup : public geode::Popup {
     protected:
         TextInput* m_ipInput;
         

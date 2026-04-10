@@ -5,7 +5,7 @@
 
 using namespace geode::prelude;
 
-class HostPopup : public geode::Popup<>{
+class HostPopup : public geode::Popup {
     protected:
         CCLabelBMFont* m_ipLabel;
         CCMenuItemSpriteExtra* hostBtn;

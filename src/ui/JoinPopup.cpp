@@ -21,7 +21,7 @@ JoinPopup* JoinPopup::create(){
 }
 
 bool JoinPopup::init(){
-    if (!geode::Popup<>::initAnchored(320.f, 280.f)) return false;
+    if (!geode::Popup::initAnchored(320.f, 280.f)) return false;
 
     this->setTitle("Join Session");
 

@@ -1,7 +1,7 @@
 #include "Popups.hpp"
 
 bool JoinSessionPopup::init(){
-    if (!geode::Popup<>::initAnchored(300.f, 200.f)) return false;
+    if (!geode::Popup::initAnchored(300.f, 200.f)) return false;
 
     auto winSize = CCDirector::sharedDirector()->getWinSize();
     this->setTitle("Join Session");

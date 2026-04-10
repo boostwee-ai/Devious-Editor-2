@@ -19,7 +19,7 @@ HostPopup* HostPopup::create(){
 }
 
 bool HostPopup::init(){
-    if (!geode::Popup<>::initAnchored(320.f, 280.f)) return false;
+    if (!geode::Popup::initAnchored(320.f, 280.f)) return false;
 
     this->setTitle("Host Session");
 

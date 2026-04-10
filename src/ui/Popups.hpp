@@ -5,7 +5,7 @@
 
 using namespace geode::prelude;
 
-class JoinSessionPopup : public geode::Popup<> {
+class JoinSessionPopup : public geode::Popup {
     protected:
         bool init() override;
         void onConnect(CCObject*);
