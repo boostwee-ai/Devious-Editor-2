@@ -1,7 +1,7 @@
 #include "Popups.hpp"
 
-bool JoinSessionPopup::init(){
-    if (!geode::Popup::initAnchored(300.f, 200.f)) return false;
+bool JoinSessionPopup::init(float w, float h){
+    if (!geode::Popup::init(w, h)) return false;
 
     auto winSize = CCDirector::sharedDirector()->getWinSize();
     this->setTitle("Join Session");
@@ -15,7 +15,7 @@ void JoinSessionPopup::onConnect(CCObject *){
 
 JoinSessionPopup* JoinSessionPopup::create(){
     auto ret = new JoinSessionPopup();
-    if (ret && ret->init()){
+    if (ret && ret->init(300.f, 200.f)){
         ret->autorelease();
         return ret;
     }

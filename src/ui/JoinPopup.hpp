@@ -9,7 +9,7 @@ class JoinPopup : public geode::Popup {
     protected:
         TextInput* m_ipInput;
         
-        bool init() override;
+        bool init(float w, float h) override;
         void OnJoin(CCObject*);
     public:
         static JoinPopup* create();

@@ -10,7 +10,7 @@ class HostPopup : public geode::Popup {
         CCLabelBMFont* m_ipLabel;
         CCMenuItemSpriteExtra* hostBtn;
 
-        bool init() override;
+        bool init(float w, float h) override;
         void onStartHost(CCObject*);
     public:
         static HostPopup* create();
