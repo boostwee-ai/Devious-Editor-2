@@ -97,8 +97,13 @@ class $modify(MyEditorUI, EditorUI){
 
         auto settingsBtn = this->getChildByID("settings-button");
         if (settingsBtn) {
-            auto menu = settingsBtn->getParent();
-            
+            auto menu = CCMenu::create();
+            menu->setID("zyye-mod-menu");
+            this->addChild(menu);
+
+            auto winSize = CCDirector::sharedDirector()->getWinSize();
+            menu->setPosition({winSize.width - 30.f, winSize.height / 2.f + 50.f});
+
             auto inspectorSprite = CCSprite::createWithSpriteFrameName("GJ_viewLightBtn_001.png");
             if (!inspectorSprite) {
                 inspectorSprite = CCSprite::createWithSpriteFrameName("edit_eSelectionFilterBtn_001.png");
@@ -112,7 +117,7 @@ class $modify(MyEditorUI, EditorUI){
             inspectorBtn->setID("inspector-button");
             
             menu->addChild(inspectorBtn);
-            inspectorBtn->setPosition(settingsBtn->getPosition() + ccp(0, 40));
+            menu->updateLayout();
         }
 
         return true;
