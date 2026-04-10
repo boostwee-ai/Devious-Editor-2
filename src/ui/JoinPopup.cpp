@@ -91,25 +91,23 @@ void JoinPopup::onUpdateSessions(float dt) {
         m_sessionMenu->addChild(label);
     } else {
         for (const auto& session : sessions) {
-            auto btn = CCMenuItemSpriteExtra::create(
-                ButtonSprite::create(fmt::format("{} ({}:{})", session.username, session.ip, session.port).c_str(), "chatFont.fnt", "GJ_button_05.png", 0.6f),
-                this,
-                menu_selector(JoinPopup::OnJoin) // Re-use OnJoin if we set the input, but better to have a separate one
-            );
-            
-            // Actually, let's just make it fill the input
             auto fillBtn = CCMenuItemSpriteExtra::create(
                 ButtonSprite::create(fmt::format("{} ({})", session.username, session.ip).c_str(), "chatFont.fnt", "GJ_button_04.png", 0.5f),
-                [this, session](auto) {
-                    m_ipInput->setString(fmt::format("{}:{}", session.ip, session.port).c_str());
-                }
+                this,
+                menu_selector(JoinPopup::onSelectSession)
             );
 
+            fillBtn->setID(fmt::format("{}:{}", session.ip, session.port));
             fillBtn->setPositionY(yOffset);
             m_sessionMenu->addChild(fillBtn);
             yOffset -= 25.0f;
         }
     }
+}
+
+void JoinPopup::onSelectSession(CCObject* sender) {
+    auto btn = static_cast<CCMenuItemSpriteExtra*>(sender);
+    m_ipInput->setString(btn->getID().c_str());
 }
 
 void JoinPopup::onClose(CCObject* sender) {

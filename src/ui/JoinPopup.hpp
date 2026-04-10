@@ -13,6 +13,7 @@ class JoinPopup : public geode::Popup {
         bool init();
         void OnJoin(CCObject*);
         void onUpdateSessions(float dt);
+        void onSelectSession(CCObject*);
         void onClose(CCObject*) override;
     public:
         static JoinPopup* create();
