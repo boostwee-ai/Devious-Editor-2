@@ -10,7 +10,7 @@ extern bool g_isInSession;
 
 HostPopup* HostPopup::create(){
     auto ret = new HostPopup();
-    if (ret && ret->init(320.f, 280.f)){
+    if (ret && ret->init()){
         ret->autorelease();
         return ret;
     }
@@ -18,8 +18,8 @@ HostPopup* HostPopup::create(){
     return nullptr;
 }
 
-bool HostPopup::init(float w, float h){
-    if (!geode::Popup::init(w, h)) return false;
+bool HostPopup::init(){
+    if (!geode::Popup::init(320.f, 280.f)) return false;
 
     this->setTitle("Host Session");
 

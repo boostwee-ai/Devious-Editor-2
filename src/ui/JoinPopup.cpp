@@ -12,7 +12,7 @@ extern bool g_isInSession;
 
 JoinPopup* JoinPopup::create(){
     auto ret = new JoinPopup();
-    if (ret && ret->init(320.f, 280.f)){
+    if (ret && ret->init()){
         ret->autorelease();
         return ret;
     }
@@ -20,8 +20,8 @@ JoinPopup* JoinPopup::create(){
     return nullptr;
 }
 
-bool JoinPopup::init(float w, float h){
-    if (!geode::Popup::init(w, h)) return false;
+bool JoinPopup::init(){
+    if (!geode::Popup::init(320.f, 280.f)) return false;
 
     this->setTitle("Join Session");
 
