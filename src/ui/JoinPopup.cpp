@@ -37,7 +37,7 @@ bool JoinPopup::init(){
     this->m_mainLayer->addChild(ipLabel);
 
     m_ipInput = TextInput::create(200.0f, "127.0.0.1", "chatFont.fnt");
-    m_ipInput->setFilter("1234567890.");
+    m_ipInput->setFilter("1234567890.:");
     m_ipInput->setPosition(ccp(
         winSize.width/2,
         winSize.height/2
@@ -73,8 +73,22 @@ void JoinPopup::OnJoin(CCObject*){
 
     log::info("Attempting to join: {}", ip);
 
-    // connect to ip
-    if (g_network->connect(ip,7777)){
+    // parse ip and port
+    std::string address = ip;
+    uint16_t port = 7777;
+
+    size_t colonPos = ip.find(':');
+    if (colonPos != std::string::npos){
+        address = ip.substr(0, colonPos);
+        try {
+            port = (uint16_t)std::stoi(ip.substr(colonPos + 1));
+        } catch (...) {
+            port = 7777;
+        }
+    }
+
+    // connect to address
+    if (g_network->connect(address, port)){
         g_isHost = false;
         g_isInSession = true;
 
