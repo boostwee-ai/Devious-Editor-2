@@ -22,6 +22,7 @@ enum class PacketType : uint8_t {
     PEER_JOINED = 9,
     PEER_LEFT = 10,
     LOBBY_SYNC = 11,
+    REQUEST_FULL_STATE = 12,
 };
 
 #pragma pack(push, 1)

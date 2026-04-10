@@ -23,7 +23,25 @@ void settingsUpdate(){
     }
 }
 
-class $modify(MyLevelEditorLayer, LevelEditorLayer){
+class $modify(MyLevelEditorLayer, LevelEditorLayer) {
+    bool init(GJGameLevel* level, bool p1) {
+        if (!LevelEditorLayer::init(level, p1)) return false;
+        
+        if (g_isInSession && !g_isHost && g_sync) {
+            log::info("Editor initialized as guest, requested full state.");
+            g_sync->requestFullState();
+        }
+        
+        return true;
+    }
+
+    void updateOptions() {
+        LevelEditorLayer::updateOptions();
+        
+        if (g_isInSession && g_isHost && g_sync && !g_sync->isApplyingRemoteChanges()) {
+            g_sync->onLocalLevelSettingsChanged();
+        }
+    }
     struct Fields {
         bool m_playtesting = false;
     };
@@ -97,27 +115,29 @@ class $modify(MyEditorUI, EditorUI){
 
         auto settingsBtn = this->getChildByID("settings-button");
         if (settingsBtn) {
-            auto menu = CCMenu::create();
-            menu->setID("zyye-mod-menu");
-            this->addChild(menu);
+            auto menu = settingsBtn->getParent();
+            if (menu) {
+                auto inspectorSprite = CCSprite::createWithSpriteFrameName("edit_eSelectionFilterBtn_001.png");
+                if (!inspectorSprite) {
+                    inspectorSprite = CCSprite::createWithSpriteFrameName("GJ_viewLightBtn_001.png");
+                }
 
-            auto winSize = CCDirector::sharedDirector()->getWinSize();
-            menu->setPosition({winSize.width - 30.f, winSize.height / 2.f + 50.f});
-
-            auto inspectorSprite = CCSprite::createWithSpriteFrameName("GJ_viewLightBtn_001.png");
-            if (!inspectorSprite) {
-                inspectorSprite = CCSprite::createWithSpriteFrameName("edit_eSelectionFilterBtn_001.png");
+                auto inspectorBtn = CCMenuItemSpriteExtra::create(
+                    inspectorSprite,
+                    this,
+                    menu_selector(MyEditorUI::onInspector)
+                );
+                inspectorBtn->setID("inspector-button");
+                
+                // Add to the same menu as settings button
+                menu->addChild(inspectorBtn);
+                
+                // Position it next to settings button
+                inspectorBtn->setPosition({
+                    settingsBtn->getPositionX() - 40.f,
+                    settingsBtn->getPositionY()
+                });
             }
-
-            auto inspectorBtn = CCMenuItemSpriteExtra::create(
-                inspectorSprite,
-                this,
-                menu_selector(MyEditorUI::onInspector)
-            );
-            inspectorBtn->setID("inspector-button");
-            
-            menu->addChild(inspectorBtn);
-            menu->updateLayout();
         }
 
         return true;

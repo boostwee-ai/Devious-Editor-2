@@ -687,7 +687,19 @@ void SyncManager::sendFullState(uint32_t targetPeerID) {
     onLocalLevelSettingsChanged(targetPeerID);
 }
 
-void SyncManager::handlePacket(const uint8_t* data, size_t size) {
+void SyncManager::requestFullState() {
+    if (g_isInSession && !g_isHost) {
+        log::info("Requesting full level state from host...");
+        PacketHeader header;
+        header.type = PacketType::REQUEST_FULL_STATE;
+        header.timestamp = getCurrentTimestamp();
+        header.senderID = g_network->getPeerID();
+        
+        g_network->sendPacket(&header, sizeof(header));
+    }
+}
+
+void SyncManager::reciveFullState(const uint8_t* data, size_t size) {
     if (size < sizeof(PacketHeader)) return;
     
     const PacketHeader* header = reinterpret_cast<const PacketHeader*>(data);
@@ -699,8 +711,14 @@ void SyncManager::handlePacket(const uint8_t* data, size_t size) {
             if (g_isHost){
                 g_network->sendLobbyState(packet->header.senderID);
                 g_network->broadcastPeerJoined(packet->header.senderID, packet->username);
-                // initial sync
-                this->sendFullState(packet->header.senderID);
+            }
+            break;
+        }
+
+        case PacketType::REQUEST_FULL_STATE: {
+            if (g_isHost) {
+                log::info("Received full state request from peer {}, sending...", header.senderID);
+                this->sendFullState(header.senderID);
             }
             break;
         }
