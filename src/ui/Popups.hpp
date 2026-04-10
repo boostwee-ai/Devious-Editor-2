@@ -7,7 +7,7 @@ using namespace geode::prelude;
 
 class JoinSessionPopup : public geode::Popup<> {
     protected:
-        bool setup() override;
+        bool init() override;
         void onConnect(CCObject*);
     public:
         static JoinSessionPopup* create();

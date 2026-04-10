@@ -1,14 +1,15 @@
 #pragma once
 
 #include <Geode/Geode.hpp>
+#include <Geode/ui/Popup.hpp>
 
 using namespace geode::prelude;
 
-class JoinPopup : public Popup <> {
+class JoinPopup : public geode::Popup<> {
     protected:
         TextInput* m_ipInput;
         
-        bool setup() override;
+        bool init() override;
         void OnJoin(CCObject*);
     public:
         static JoinPopup* create();

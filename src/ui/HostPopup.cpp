@@ -10,15 +10,17 @@ extern bool g_isInSession;
 
 HostPopup* HostPopup::create(){
     auto ret = new HostPopup();
-    if (ret->initAnchored(320.0f,280.0f)){
+    if (ret && ret->init()){
         ret->autorelease();
         return ret;
     }
-    delete ret;
+    CC_SAFE_DELETE(ret);
     return nullptr;
 }
 
-bool HostPopup::setup(){
+bool HostPopup::init(){
+    if (!geode::Popup<>::initAnchored(320.f, 280.f)) return false;
+
     this->setTitle("Host Session");
 
     auto winSize = this->m_mainLayer->getContentSize();

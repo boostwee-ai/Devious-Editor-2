@@ -12,15 +12,17 @@ extern bool g_isInSession;
 
 JoinPopup* JoinPopup::create(){
     auto ret = new JoinPopup();
-    if (ret->initAnchored(320.0f,280.0f)){
+    if (ret && ret->init()){
         ret->autorelease();
         return ret;
     }
-    delete ret;
+    CC_SAFE_DELETE(ret);
     return nullptr;
 }
 
-bool JoinPopup::setup(){
+bool JoinPopup::init(){
+    if (!geode::Popup<>::initAnchored(320.f, 280.f)) return false;
+
     this->setTitle("Join Session");
 
     auto winSize = this->m_mainLayer->getContentSize();
