@@ -1062,7 +1062,6 @@ void SyncManager::applyLevelSettings(const LevelSettingsData& data) {
     // gameplay
     level->m_twoPlayerMode = data.twoPlayerMode;
     settings->m_startMode = data.gamemode;
-    level->setPlatformer(data.isPlatformer);
     settings->m_startSpeed = data.speed;
 
     if (editor->m_editorUI){
