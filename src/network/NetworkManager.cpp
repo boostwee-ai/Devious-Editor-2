@@ -1,5 +1,6 @@
 #include "NetworkManager.hpp"
 #include "DiscoveryManager.hpp"
+#include "Packets.hpp"
 #include <Geode/Geode.hpp>
 #include <Geode/binding/GJAccountManager.hpp>
 

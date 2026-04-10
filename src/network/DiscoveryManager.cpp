@@ -92,7 +92,7 @@ void DiscoveryManager::listenLoop() {
         int receivedSize = enet_socket_receive(socket, &senderAddress, &buffer, 1);
         if (receivedSize > 0) {
             std::string data(bufferData, receivedSize);
-            if (data.starts_with("DE2_DISCOVERY:")) {
+            if (data.find("DE2_DISCOVERY:") == 0) {
                 auto parts = geode::utils::string::split(data, ":");
                 if (parts.size() >= 3) {
                     char ip[64];
