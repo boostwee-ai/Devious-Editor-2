@@ -23,6 +23,7 @@ enum class PacketType : uint8_t {
     PEER_LEFT = 10,
     LOBBY_SYNC = 11,
     REQUEST_FULL_STATE = 12,
+    OBJECT_BATCH = 13,
 };
 
 #pragma pack(push, 1)
@@ -408,6 +409,18 @@ struct LobbySyncPacket{
     PacketHeader header;
     uint32_t memberCount;
     LobbyMember members[maxPlayers];
+};
+
+struct ObjectBatchItem {
+    char uid[32];
+    uint32_t stringLength;
+    char objectString[2048]; // same as ObjectStringPacket
+};
+
+struct ObjectBatchPacket {
+    PacketHeader header;
+    uint32_t countInBatch;
+    ObjectBatchItem objects[50]; // limit to 50 objects per packet to avoid huge packets
 };
 
 #pragma pack(pop)

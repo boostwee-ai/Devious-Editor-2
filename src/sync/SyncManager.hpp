@@ -104,6 +104,7 @@ class SyncManager{
         void trackExistingObjects();
         
         /* -- OTHERS -- */
+        void onRemoteObjectsBatched(const ObjectBatchPacket& packet);
         void handlePacket(const uint8_t* data, size_t size);
 
         CCPoint getCursorPosition() const { return m_CursorPos; }

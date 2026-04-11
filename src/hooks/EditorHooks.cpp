@@ -28,11 +28,17 @@ class $modify(MyLevelEditorLayer, LevelEditorLayer) {
         if (!LevelEditorLayer::init(level, p1)) return false;
         
         if (g_isInSession && !g_isHost && g_sync) {
-            log::info("Editor initialized as guest, requested full state.");
-            g_sync->requestFullState();
+            log::info("Editor initialized as guest, delaying full state request.");
+            this->scheduleOnce(schedule_selector(MyLevelEditorLayer::requestFullStateDelayed), 0.5f);
         }
         
         return true;
+    }
+
+    void requestFullStateDelayed(float dt) {
+        if (g_sync) {
+            g_sync->requestFullState();
+        }
     }
 
     void updateOptions() {

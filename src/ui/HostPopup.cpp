@@ -107,11 +107,11 @@ void HostPopup::onStartHost(CCObject*){
             "OK"
         )->show();
 
-        g_network->setOnConnect([]() {
-            log::info("Client connected");
+        g_network->setOnConnect([](uint32_t peerID) {
+            log::info("Client {} connected", peerID);
 
             if (g_sync){
-                g_sync->sendFullState();
+                g_sync->sendFullState(peerID);
             } else {
                 // i dont think this can happen, but just in case. No one knows.
                 FLAlertLayer::create(

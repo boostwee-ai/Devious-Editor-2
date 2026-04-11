@@ -656,35 +656,48 @@ void SyncManager::sendFullState(uint32_t targetPeerID) {
     auto allObjects = editor->m_objects;
     if (!allObjects) return;
     
-    for (int i = 0; i < allObjects->count(); i++) {
-        auto obj = static_cast<GameObject*>(allObjects->objectAtIndex(i));
-        
-        if (!isTrackedObject(obj)) {
-            std::string uid = generateUID();
-            trackObject(uid, obj);
-        }
-        
-        gd::string gdString = obj->getSaveString(nullptr);
-        std::string objString = std::string(gdString);
-        
-        ObjectStringPacket packet;
-        packet.header.type = PacketType::OBJECT_ADD;
+    int objectCount = allObjects->count();
+    int currentIdx = 0;
+
+    while (currentIdx < objectCount) {
+        ObjectBatchPacket packet;
+        memset(&packet, 0, sizeof(packet));
+        packet.header.type = PacketType::OBJECT_BATCH;
         packet.header.timestamp = getCurrentTimestamp();
         packet.header.senderID = g_network->getPeerID();
         
-        std::string uid = getObjectUid(obj);
-        strncpy(packet.uid, uid.c_str(), 31);
-        packet.uid[31] = '\0';
+        int batchSize = 0;
+        for (int i = 0; i < 50 && currentIdx < objectCount; i++) {
+            auto obj = static_cast<GameObject*>(allObjects->objectAtIndex(currentIdx++));
+            if (!obj) continue;
+
+            if (!isTrackedObject(obj)) {
+                std::string uid = generateUID();
+                trackObject(uid, obj);
+            }
+
+            std::string uid = getObjectUid(obj);
+            gd::string gdString = obj->getSaveString(nullptr);
+            std::string objString = std::string(gdString);
+
+            auto& item = packet.objects[batchSize];
+            strncpy(item.uid, uid.c_str(), 31);
+            item.uid[31] = '\0';
+            
+            item.stringLength = std::min(objString.length(), sizeof(item.objectString) - 1);
+            strncpy(item.objectString, objString.c_str(), item.stringLength);
+            item.objectString[item.stringLength] = '\0';
+            
+            batchSize++;
+        }
         
-        packet.stringLength = std::min(objString.length(), sizeof(packet.objectString) - 1);
-        strncpy(packet.objectString, objString.c_str(), packet.stringLength);
-        packet.objectString[packet.stringLength] = '\0';
-        
-        g_network->sendPacket(&packet, sizeof(packet), targetPeerID);
+        packet.countInBatch = batchSize;
+        if (batchSize > 0) {
+            g_network->sendPacket(&packet, sizeof(packet), targetPeerID);
+        }
     }
     
-    log::info("Sent {} objects", allObjects->count());
-
+    log::info("Sent {} objects in batches", objectCount);
     onLocalLevelSettingsChanged(targetPeerID);
 }
 
@@ -799,6 +812,11 @@ void SyncManager::handlePacket(const uint8_t* data, size_t size) {
             onRemoteLevelSettingsChanged(*packet);
             break;
         }
+        case PacketType::OBJECT_BATCH: {
+            const ObjectBatchPacket* packet = reinterpret_cast<const ObjectBatchPacket*>(data);
+            onRemoteObjectsBatched(*packet);
+            break;
+        }
         case PacketType::PLAYER_POSITION: {
             const PlayerPositionPacket* packet = reinterpret_cast<const PlayerPositionPacket*>(data);
             
@@ -858,6 +876,9 @@ void SyncManager::onRemoteCursorUpdate(const uint32_t& userID, int x, int y){
 
         auto cursor = CCSprite::create("cursor.png"_spr);
         if (!cursor) {
+            cursor = CCSprite::createWithSpriteFrameName("GJ_cursorBtn_001.png"); // Fallback
+        }
+        if (!cursor) {
             log::error("failed to create cursor sprite!");
             return;
         }
@@ -866,22 +887,13 @@ void SyncManager::onRemoteCursorUpdate(const uint32_t& userID, int x, int y){
         cursor->setZOrder(INT_MAX);
         cursor->setPosition(position);
         
-        // TODO
-        /*
-        auto label = CCLabelBMFont::create(username, "chatFont.fnt");
-        label->setScale(0.5f);
-        cursor->addChild(label);
-        label->setPosition(
-            ccp(
-                cursor->getContentSize().width / 2,
-                cursor->getContentSize().height + 5
-             ));
-        */
         m_remoteCursors[userID] = cursor;
         
         log::info("created cursor for user: {}", userID);
     } else {
-        it->second->setPosition(position);
+        if (it->second) {
+            it->second->setPosition(position);
+        }
     }
 }
 
@@ -1247,17 +1259,21 @@ void SyncManager::onRemotePlayerPosition(const PlayerPositionPacket& packet, Lev
         remotePlayer->m_isDead = packet.isDead;
         
         auto gameManager = GameManager::sharedState();
-        remotePlayer->setColor(gameManager->colorForIdx(packet.iconData.color1ID));
-        remotePlayer->setSecondColor(gameManager->colorForIdx(packet.iconData.color2ID));
+        if (gameManager) {
+            remotePlayer->setColor(gameManager->colorForIdx(packet.iconData.color1ID));
+            remotePlayer->setSecondColor(gameManager->colorForIdx(packet.iconData.color2ID));
+            
+            if (packet.iconData.hasGlow) {
+                remotePlayer->enableCustomGlowColor(gameManager->colorForIdx(packet.iconData.glowColor));
+            } else {
+                remotePlayer->disableCustomGlowColor();
+            }
+        }
         remotePlayer->setZOrder(1000);
         
-        if (packet.iconData.hasGlow) {
-            remotePlayer->enableCustomGlowColor(gameManager->colorForIdx(packet.iconData.glowColor));
-        } else {
-            remotePlayer->disableCustomGlowColor();
+        if (editorLayer && editorLayer->m_objectLayer) {
+            editorLayer->m_objectLayer->addChild(remotePlayer);
         }
-        
-        editorLayer->m_objectLayer->addChild(remotePlayer);
         
         RemotePlayer rp;
         rp.player = remotePlayer;
@@ -1310,7 +1326,7 @@ void SyncManager::updateOwnerInspector(CCPoint mousePos) {
     if (!m_showOwners) return;
 
     auto editor = getEditorLayer();
-    if (!editor || !editor->m_objectLayer) return;
+    if (!editor || !editor->m_objectLayer || !editor->m_objects) return;
 
     if (m_ownerLabel->getParent() != editor->m_objectLayer) {
         if (m_ownerLabel->getParent()) {
@@ -1357,4 +1373,30 @@ void SyncManager::updateOwnerInspector(CCPoint mousePos) {
     } else {
         m_ownerLabel->setVisible(false);
     }
+}
+
+void SyncManager::onRemoteObjectsBatched(const ObjectBatchPacket& packet) {
+    auto editor = getEditorLayer();
+    if (!editor || !editor->m_objects) return;
+
+    m_applyingRemoteChanges = true;
+    
+    for (uint32_t i = 0; i < packet.countInBatch; i++) {
+        const auto& item = packet.objects[i];
+        std::string objString(item.objectString, item.stringLength);
+        
+        int countBefore = editor->m_objects ? editor->m_objects->count() : 0;
+        editor->createObjectsFromString(objString, false, false);
+        int countAfter = editor->m_objects ? editor->m_objects->count() : 0;
+        
+        if (countAfter > countBefore) {
+            GameObject* newObj = static_cast<GameObject*>(editor->m_objects->objectAtIndex(countAfter - 1));
+            std::string uid(item.uid);
+            trackObject(uid, newObj);
+            m_objectOwners[uid] = packet.header.senderID;
+        }
+    }
+    
+    m_applyingRemoteChanges = false;
+    log::info("Processed batch of {} objects", packet.countInBatch);
 }

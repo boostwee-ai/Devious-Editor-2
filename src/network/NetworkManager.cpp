@@ -81,7 +81,7 @@ bool NetworkManager::connect(const std::string& ip, uint16_t port){
         packet.username = getUsername();
         
         sendPacket(&packet, sizeof(packet));
-        if (m_onConnect) m_onConnect();
+        if (m_onConnect) m_onConnect(getPeerID());
         return true;
     } else {
         //log::error("connection failed, event.type is {}", event.type);
@@ -157,7 +157,7 @@ void NetworkManager::poll(){
                     m_peer = event.peer;
                 }
 
-                if (m_onConnect) m_onConnect();
+                if (m_onConnect) m_onConnect(event.peer->connectID);
                 break;
             case ENET_EVENT_TYPE_RECEIVE:
                 if (m_onReceive){
@@ -189,7 +189,7 @@ void NetworkManager::setOnRecive(std::function<void(const uint8_t*, size_t)> cal
     m_onReceive = callback;
 }
 
-void NetworkManager::setOnConnect(std::function<void()> callback){
+void NetworkManager::setOnConnect(std::function<void(uint32_t)> callback){
     m_onConnect = callback;
 }
 

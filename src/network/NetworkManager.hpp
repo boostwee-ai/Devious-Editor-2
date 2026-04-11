@@ -35,7 +35,7 @@ class NetworkManager{
         void poll();
 
         void setOnRecive(std::function<void(const uint8_t*, size_t)> callback);
-        void setOnConnect(std::function<void()> callback);
+        void setOnConnect(std::function<void(uint32_t)> callback);
         void setOnDisconnect(std::function<void()> callback);
 
         bool isConnected() const { return m_peer != nullptr; }
@@ -57,7 +57,7 @@ class NetworkManager{
         gd::string m_username;
 
         std::function<void(const uint8_t*, size_t)> m_onReceive;
-        std::function<void()> m_onConnect;
+        std::function<void(uint32_t)> m_onConnect;
         std::function<void()> m_onDisconnect;
 
         std::map<uint32_t, ENetPeer*> m_connectedPeers;
