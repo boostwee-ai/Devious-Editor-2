@@ -78,7 +78,10 @@ bool NetworkManager::connect(const std::string& ip, uint16_t port){
         packet.header.type = PacketType::HANDSHAKE;
         packet.header.timestamp = getCurrentTimestamp();
         packet.header.senderID = getPeerID();
-        packet.username = getUsername();
+        
+        std::string username = getUsername();
+        strncpy(packet.username, username.c_str(), 63);
+        packet.username[63] = '\0';
         
         sendPacket(&packet, sizeof(packet));
         if (m_onConnect) m_onConnect(getPeerID());

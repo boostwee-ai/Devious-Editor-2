@@ -36,7 +36,7 @@ struct PacketHeader{
 
 struct HandshakePacket{
     PacketHeader header;
-    gd::string username;
+    char username[64];
 };
 
 struct ObjectData {
@@ -52,18 +52,18 @@ struct ObjectData {
     
     // Object state
     bool hasBeenActivated;
-    GameObjectType objectType;
+    int objectType; // Use int instead of enum
     cocos2d::CCPoint startPositionPoint;
     bool useAudioScale;
     
     // Layer properties
-    ZLayer zLayer;
+    int zLayer; // Use int instead of enum
     int zOrder;
     int editorLayer;
     int editorLayer2;
     
     // Color properties
-    GJSpriteColor baseColorID;
+    int baseColorID; // Use int instead of GJSpriteColor struct
     int detailColorID;
     bool dontEnter;
     bool dontFade;

@@ -75,17 +75,17 @@ ObjectData SyncManager::extractObjectData(GameObject* obj) {
     data.isFlippedY = obj->isFlipY();
     
     data.hasBeenActivated = obj->m_isActivated;
-    data.objectType = obj->m_objectType;
+    data.objectType = static_cast<int>(obj->m_objectType);
     data.startPositionPoint = obj->m_startPosition;
     data.useAudioScale = obj->m_usesAudioScale;
 
-    data.zLayer = obj->m_zLayer;
+    data.zLayer = static_cast<int>(obj->m_zLayer);
     data.zOrder = obj->getZOrder();
     data.editorLayer = obj->m_editorLayer;
     data.editorLayer2 = obj->m_editorLayer2;
 
     if (obj->m_baseColor) {
-        data.baseColorID = *obj->m_baseColor;
+        data.baseColorID = obj->m_baseColor->m_colorID;
     }
     data.detailColorID = obj->m_activeDetailColorID;
     data.dontEnter = obj->m_isDontEnter;
@@ -293,17 +293,17 @@ void SyncManager::applyObjectData(GameObject* obj, const ObjectData& data) {
     obj->setFlipY(data.isFlippedY);
     
     obj->m_isActivated = data.hasBeenActivated;
-    obj->m_objectType = data.objectType;
+    obj->m_objectType = static_cast<GameObjectType>(data.objectType);
     obj->m_startPosition = data.startPositionPoint;
     obj->m_usesAudioScale = data.useAudioScale;
     
-    obj->m_zLayer = data.zLayer;
+    obj->m_zLayer = static_cast<ZLayer>(data.zLayer);
     obj->setZOrder(data.zOrder);
     obj->m_editorLayer = data.editorLayer;
     obj->m_editorLayer2 = data.editorLayer2;
     
     if (obj->m_baseColor) {
-        *obj->m_baseColor = data.baseColorID;
+        obj->m_baseColor->m_colorID = data.baseColorID;
     }
     obj->m_activeDetailColorID = data.detailColorID;
     obj->m_isDontEnter = data.dontEnter;
