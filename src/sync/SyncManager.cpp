@@ -25,6 +25,7 @@ std::string SyncManager::generateUID() {
 }
 
 void SyncManager::trackObject(const std::string& uid, GameObject* obj){
+    if (!obj) return;
     m_syncedObjects[uid] = obj;
     m_objectToUID[obj] = uid;
 }
@@ -573,16 +574,17 @@ void SyncManager::onRemoteObjectAdded(const ObjectStringPacket& packet) {
     editor->createObjectsFromString(objString, false, false);
     
     int countAfter = editor->m_objects ? editor->m_objects->count() : 0;
-    if (countAfter > countBefore) {
-        GameObject* newObj = static_cast<GameObject*>(
-            editor->m_objects->objectAtIndex(countAfter - 1)
-        );
-        
-        std::string uid(packet.uid);
-        trackObject(uid, newObj);
-        m_objectOwners[uid] = packet.header.senderID;
-        
-        log::info("Created object: {}", uid);
+    if (countAfter > countBefore && editor->m_objects) {
+        auto objRaw = editor->m_objects->objectAtIndex(countAfter - 1);
+        if (objRaw) {
+            GameObject* newObj = static_cast<GameObject*>(objRaw);
+            
+            std::string uid(packet.uid);
+            trackObject(uid, newObj);
+            m_objectOwners[uid] = packet.header.senderID;
+            
+            log::info("Created object: {}", uid);
+        }
     } else {
         log::error("Object creation failed!");
     }
@@ -729,6 +731,7 @@ void SyncManager::handlePacket(const uint8_t* data, size_t size) {
     
     switch (header->type) {
         case PacketType::HANDSHAKE: {
+            if (size < sizeof(HandshakePacket)) return;
             const HandshakePacket* packet = reinterpret_cast<const HandshakePacket*>(data);
             g_network->addPeer(packet->header.senderID, packet->username);
             if (g_isHost){
@@ -746,18 +749,21 @@ void SyncManager::handlePacket(const uint8_t* data, size_t size) {
             break;
         }
         case PacketType::PEER_JOINED: {
+            if (size < sizeof(PeerJoinedPacket)) return;
             const PeerJoinedPacket* packet = reinterpret_cast<const PeerJoinedPacket*>(data);
             g_network->addPeer(packet->peerID, packet->username);
             log::info("peer joined {} ({})", packet->peerID, packet->username);
             break;
         }
         case PacketType::PEER_LEFT: {
-            const PeerJoinedPacket* packet = reinterpret_cast<const PeerJoinedPacket*>(data);
+            if (size < sizeof(PeerLeftPacket)) return;
+            const PeerLeftPacket* packet = reinterpret_cast<const PeerLeftPacket*>(data);
             g_network->removePeer(packet->peerID);
             log::info("peer left {}", packet->peerID);
             break;
         }
         case PacketType::LOBBY_SYNC: {
+            if (size < sizeof(LobbySyncPacket)) return;
             const LobbySyncPacket* packet = reinterpret_cast<const LobbySyncPacket*>(data);
 
             g_network->m_peersInLobby.clear();
@@ -773,26 +779,31 @@ void SyncManager::handlePacket(const uint8_t* data, size_t size) {
             break;
         }
         case PacketType::OBJECT_ADD: {
+            if (size < sizeof(ObjectStringPacket)) return;
             const ObjectStringPacket* packet = reinterpret_cast<const ObjectStringPacket*>(data);
             onRemoteObjectAdded(*packet);
             break;
         }
         case PacketType::OBJECT_DELETE: {
+            if (size < sizeof(ObjectDeletePacket)) return;
             const ObjectDeletePacket* packet = reinterpret_cast<const ObjectDeletePacket*>(data);
             onRemoteObjectDestroyed(*packet);
             break;
         }
         case PacketType::OBJECT_UPDATE: {
+            if (size < sizeof(ObjectStringPacket)) return;
             const ObjectStringPacket* packet = reinterpret_cast<const ObjectStringPacket*>(data);
             onRemoteObjectModified(*packet);
             break;
         }
         case PacketType::MOUSE_MOVE: {
+            if (size < sizeof(MousePacket)) return;
             const MousePacket* packet = reinterpret_cast<const MousePacket*>(data);
             onRemoteCursorUpdate(packet->header.senderID, packet->x, packet->y);
             break;
         }
         case PacketType::SELECT_CHANGE: {
+            if (size < sizeof(SelectPacket)) return;
             const SelectPacket* packet = reinterpret_cast<const SelectPacket*>(data);
             
             std::vector<std::string> uids;
@@ -817,16 +828,19 @@ void SyncManager::handlePacket(const uint8_t* data, size_t size) {
             break;
         }
         case PacketType::LEVEL_SETTINGS: {
+            if (size < sizeof(LevelSettingsPacket)) return;
             const LevelSettingsPacket* packet = reinterpret_cast<const LevelSettingsPacket*>(data);
             onRemoteLevelSettingsChanged(*packet);
             break;
         }
         case PacketType::OBJECT_BATCH: {
+            if (size < sizeof(ObjectBatchPacket)) return;
             const ObjectBatchPacket* packet = reinterpret_cast<const ObjectBatchPacket*>(data);
             onRemoteObjectsBatched(*packet);
             break;
         }
         case PacketType::PLAYER_POSITION: {
+            if (size < sizeof(PlayerPositionPacket)) return;
             const PlayerPositionPacket* packet = reinterpret_cast<const PlayerPositionPacket*>(data);
             
             auto editorLayer = getEditorLayer();
