@@ -96,6 +96,16 @@ class $modify(MyLevelEditorLayer, LevelEditorLayer) {
         LevelEditorLayer::onPlaytest();
     }
 
+    void removeObject(GameObject* p0, bool p1) {
+        if (g_isInSession && g_sync && !g_sync->isApplyingRemoteChanges()) {
+            std::string uid = g_sync->getObjectUid(p0);
+            if (!uid.empty()) {
+                g_sync->onLocalObjectDestroyed(p0);
+            }
+        }
+        LevelEditorLayer::removeObject(p0, p1);
+    }
+
     void onStopPlaytest() {
         log::info("stop playtest");
 
@@ -208,14 +218,6 @@ class $modify(MyEditorUI, EditorUI){
     
     /* -- delete --*/
     void onDeleteSelected(CCObject* sender) {
-        auto selected = this->getSelectedObjects();
-
-        if (g_isInSession && g_sync){
-            for (auto obj : CCArrayExt<GameObject*>(selected)){
-                g_sync->onLocalObjectDestroyed(obj);
-            }
-        }
-
         EditorUI::onDeleteSelected(sender);
     }
 
