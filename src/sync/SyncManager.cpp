@@ -700,7 +700,7 @@ void SyncManager::requestFullState() {
     }
 }
 
-void SyncManager::reciveFullState(const uint8_t* data, size_t size) {
+void SyncManager::handlePacket(const uint8_t* data, size_t size) {
     if (size < sizeof(PacketHeader)) return;
     
     const PacketHeader* header = reinterpret_cast<const PacketHeader*>(data);

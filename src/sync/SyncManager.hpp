@@ -100,7 +100,7 @@ class SyncManager{
         /* --- FULL SYNC --- */
         void sendFullState(uint32_t targetPeerID = 0);
         void requestFullState();
-        void reciveFullState(const uint8_t* data, size_t size);
+
         void trackExistingObjects();
         
         /* -- OTHERS -- */
