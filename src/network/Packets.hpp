@@ -411,16 +411,12 @@ struct LobbySyncPacket{
     LobbyMember members[maxPlayers];
 };
 
-struct ObjectBatchItem {
-    char uid[32];
-    uint32_t stringLength;
-    char objectString[2048]; // same as ObjectStringPacket
-};
-
 struct ObjectBatchPacket {
     PacketHeader header;
     uint32_t countInBatch;
-    ObjectBatchItem objects[50]; // limit to 50 objects per packet to avoid huge packets
+    char uids[32][32];
+    uint32_t stringLength;
+    char objectsString[32768]; // 32KB Concatenated object strings
 };
 
 #pragma pack(pop)

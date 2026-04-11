@@ -656,6 +656,7 @@ void SyncManager::sendFullState(uint32_t targetPeerID) {
     auto allObjects = editor->m_objects;
     if (!allObjects) return;
     
+    
     int objectCount = allObjects->count();
     int currentIdx = 0;
 
@@ -666,8 +667,10 @@ void SyncManager::sendFullState(uint32_t targetPeerID) {
         packet.header.timestamp = getCurrentTimestamp();
         packet.header.senderID = g_network->getPeerID();
         
-        int batchSize = 0;
-        for (int i = 0; i < 50 && currentIdx < objectCount; i++) {
+        std::string batchString = "";
+        uint32_t batchCount = 0;
+
+        for (int i = 0; i < 32 && currentIdx < objectCount; i++) {
             auto obj = static_cast<GameObject*>(allObjects->objectAtIndex(currentIdx++));
             if (!obj) continue;
 
@@ -680,24 +683,30 @@ void SyncManager::sendFullState(uint32_t targetPeerID) {
             gd::string gdString = obj->getSaveString(nullptr);
             std::string objString = std::string(gdString);
 
-            auto& item = packet.objects[batchSize];
-            strncpy(item.uid, uid.c_str(), 31);
-            item.uid[31] = '\0';
+            // Check if adding this object would exceed our 32KB buffer
+            if (batchString.length() + objString.length() + 2 >= sizeof(packet.objectsString)) {
+                // Backtrack so we can send this object in the next batch
+                currentIdx--;
+                break;
+            }
+
+            strncpy(packet.uids[batchCount], uid.c_str(), 31);
+            packet.uids[batchCount][31] = '\0';
             
-            item.stringLength = std::min(objString.length(), sizeof(item.objectString) - 1);
-            strncpy(item.objectString, objString.c_str(), item.stringLength);
-            item.objectString[item.stringLength] = '\0';
-            
-            batchSize++;
+            batchString += objString + ";";
+            batchCount++;
         }
         
-        packet.countInBatch = batchSize;
-        if (batchSize > 0) {
+        packet.countInBatch = batchCount;
+        packet.stringLength = static_cast<uint32_t>(batchString.length());
+        memcpy(packet.objectsString, batchString.c_str(), packet.stringLength);
+        
+        if (batchCount > 0) {
             g_network->sendPacket(&packet, sizeof(packet), targetPeerID);
         }
     }
     
-    log::info("Sent {} objects in batches", objectCount);
+    log::info("Sent {} objects in optimized bursts", objectCount);
     onLocalLevelSettingsChanged(targetPeerID);
 }
 
@@ -1381,22 +1390,26 @@ void SyncManager::onRemoteObjectsBatched(const ObjectBatchPacket& packet) {
 
     m_applyingRemoteChanges = true;
     
-    for (uint32_t i = 0; i < packet.countInBatch; i++) {
-        const auto& item = packet.objects[i];
-        std::string objString(item.objectString, item.stringLength);
+    std::string objectsString(packet.objectsString, packet.stringLength);
+    
+    int countBefore = editor->m_objects->count();
+    editor->createObjectsFromString(objectsString, false, false);
+    int countAfter = editor->m_objects->count();
+    
+    int objectsCreated = countAfter - countBefore;
+    
+    // Safety check - we shouldn't have more objects created than UIDs sent
+    int toTrack = std::min((uint32_t)objectsCreated, packet.countInBatch);
+    
+    for (int i = 0; i < toTrack; i++) {
+        // Objects are added to the end of m_objects in the order they appear in the string
+        GameObject* newObj = static_cast<GameObject*>(editor->m_objects->objectAtIndex(countBefore + i));
+        std::string uid(packet.uids[i]);
         
-        int countBefore = editor->m_objects ? editor->m_objects->count() : 0;
-        editor->createObjectsFromString(objString, false, false);
-        int countAfter = editor->m_objects ? editor->m_objects->count() : 0;
-        
-        if (countAfter > countBefore) {
-            GameObject* newObj = static_cast<GameObject*>(editor->m_objects->objectAtIndex(countAfter - 1));
-            std::string uid(item.uid);
-            trackObject(uid, newObj);
-            m_objectOwners[uid] = packet.header.senderID;
-        }
+        trackObject(uid, newObj);
+        m_objectOwners[uid] = packet.header.senderID;
     }
     
     m_applyingRemoteChanges = false;
-    log::info("Processed batch of {} objects", packet.countInBatch);
+    log::info("Processed burst batch: {}/{} objects synced", toTrack, packet.countInBatch);
 }
