@@ -416,7 +416,7 @@ struct ObjectBatchPacket {
     uint32_t countInBatch;
     char uids[32][32];
     uint32_t stringLength;
-    char objectsString[32768]; // 32KB Concatenated object strings
+    char objectsString[16384]; // 16KB Concatenated object strings
 };
 
 #pragma pack(pop)

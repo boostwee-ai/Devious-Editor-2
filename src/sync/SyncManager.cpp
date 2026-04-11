@@ -568,15 +568,12 @@ void SyncManager::onRemoteObjectAdded(const ObjectStringPacket& packet) {
     m_applyingRemoteChanges = true;
     
     std::string objString(packet.objectString, packet.stringLength);
-    log::info("Received OBJECT_ADD from {}: UID={}, Length={}, String={}", 
-        packet.header.senderID, packet.uid, packet.stringLength, objString);
     
     int countBefore = editor->m_objects ? editor->m_objects->count() : 0;
     
     editor->createObjectsFromString(objString, false, false);
     
     int countAfter = editor->m_objects ? editor->m_objects->count() : 0;
-    log::info("Objects count after create: {} (Difference: {})", countAfter, countAfter - countBefore);
 
     if (countAfter > countBefore && editor->m_objects) {
         auto objRaw = editor->m_objects->objectAtIndex(countAfter - 1);
@@ -694,7 +691,7 @@ void SyncManager::sendFullState(uint32_t targetPeerID) {
             gd::string gdString = obj->getSaveString(nullptr);
             std::string objString = std::string(gdString);
 
-            // Check if adding this object would exceed our 32KB buffer
+            // Check if adding this object would exceed our 16KB buffer
             if (batchString.length() + objString.length() + 2 >= sizeof(packet.objectsString)) {
                 // Backtrack so we can send this object in the next batch
                 currentIdx--;

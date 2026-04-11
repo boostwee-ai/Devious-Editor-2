@@ -106,6 +106,22 @@ class $modify(MyLevelEditorLayer, LevelEditorLayer) {
         LevelEditorLayer::removeObject(p0, p1);
     }
 
+    void addObject(GameObject* p0) {
+        LevelEditorLayer::addObject(p0);
+        if (g_isInSession && g_sync && !g_sync->isApplyingRemoteChanges()) {
+            if (!g_sync->isTrackedObject(p0)) {
+                g_sync->onLocalObjectAdded(p0);
+            }
+        }
+    }
+
+    void onExit() {
+        if (g_sync) {
+            g_sync->clearAll();
+        }
+        LevelEditorLayer::onExit();
+    }
+
     void onStopPlaytest() {
         log::info("stop playtest");
 
@@ -118,9 +134,7 @@ class $modify(MyLevelEditorLayer, LevelEditorLayer) {
     }
 
     virtual ~MyLevelEditorLayer() {
-        if (g_sync) {
-            g_sync->clearAll();
-        }
+        // Moved to onExit for better stability
     }
 };
 
