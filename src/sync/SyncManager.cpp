@@ -710,7 +710,9 @@ void SyncManager::sendFullState(uint32_t targetPeerID) {
         memcpy(packet.objectsString, batchString.c_str(), packet.stringLength);
         
         if (batchCount > 0) {
-            g_network->sendPacket(&packet, sizeof(packet), targetPeerID);
+            // Only send the part of the packet we actually used
+            size_t usedSize = offsetof(ObjectBatchPacket, objectsString) + packet.stringLength;
+            g_network->sendPacket(&packet, usedSize, targetPeerID);
         }
     }
     
@@ -840,8 +842,20 @@ void SyncManager::handlePacket(const uint8_t* data, size_t size) {
             break;
         }
         case PacketType::OBJECT_BATCH: {
-            if (size < sizeof(ObjectBatchPacket)) return;
+            size_t minSize = offsetof(ObjectBatchPacket, objectsString);
+            if (size < minSize) {
+                log::warn("Received undersized OBJECT_BATCH packet: {} (min {})", size, minSize);
+                return;
+            }
             const ObjectBatchPacket* packet = reinterpret_cast<const ObjectBatchPacket*>(data);
+            
+            // Further validation using the internal stringLength
+            if (size < minSize + packet->stringLength) {
+                log::warn("Received truncated OBJECT_BATCH packet: got {} bytes, expected {} for {} chars", 
+                    size, minSize + packet->stringLength, packet->stringLength);
+                return;
+            }
+            
             onRemoteObjectsBatched(*packet);
             break;
         }
