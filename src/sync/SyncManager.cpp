@@ -568,12 +568,16 @@ void SyncManager::onRemoteObjectAdded(const ObjectStringPacket& packet) {
     m_applyingRemoteChanges = true;
     
     std::string objString(packet.objectString, packet.stringLength);
+    log::info("Received OBJECT_ADD from {}: UID={}, Length={}, String={}", 
+        packet.header.senderID, packet.uid, packet.stringLength, objString);
     
     int countBefore = editor->m_objects ? editor->m_objects->count() : 0;
     
     editor->createObjectsFromString(objString, false, false);
     
     int countAfter = editor->m_objects ? editor->m_objects->count() : 0;
+    log::info("Objects count after create: {} (Difference: {})", countAfter, countAfter - countBefore);
+
     if (countAfter > countBefore && editor->m_objects) {
         auto objRaw = editor->m_objects->objectAtIndex(countAfter - 1);
         if (objRaw) {
@@ -609,9 +613,14 @@ void SyncManager::onRemoteObjectDestroyed(const ObjectDeletePacket& packet) {
     
     untrackObject(packet.uid);
     
-    m_applyingRemoteChanges = true;
-    editor->removeObject(obj, true);
-    m_applyingRemoteChanges = false;
+    // Safety check - make sure the object is still in the actual list
+    if (editor->m_objects && editor->m_objects->containsObject(obj)) {
+        m_applyingRemoteChanges = true;
+        editor->removeObject(obj, true);
+        m_applyingRemoteChanges = false;
+    } else {
+        log::warn("Attempted to remove object {} that is no longer in editor m_objects", packet.uid);
+    }
 }
 
 void SyncManager::onRemoteObjectModified(const ObjectStringPacket& packet) {
@@ -1336,6 +1345,43 @@ void SyncManager::cleanUpPlayers() {
     }
     m_remotePlayers.clear();
     m_lastPlayerSendTime = 0.0f;
+}
+
+void SyncManager::clearAll() {
+    log::info("Clearing all synchronization data for session reset.");
+    
+    // Clean up players first
+    cleanUpPlayers();
+    
+    // Clear cursors and highlights
+    for (auto& [userId, cursor] : m_remoteCursors) {
+        if (cursor && cursor->getParent()) {
+            cursor->removeFromParent();
+        }
+    }
+    m_remoteCursors.clear();
+    
+    for (auto& [userId, highlights] : m_remoteSelectionHighlights) {
+        for (auto highlight : highlights) {
+            if (highlight && highlight->getParent()) {
+                highlight->removeFromParent();
+            }
+        }
+    }
+    m_remoteSelectionHighlights.clear();
+    
+    // Clear all tracking maps
+    m_syncedObjects.clear();
+    m_objectToUID.clear();
+    m_objectOwners.clear();
+    m_remoteSelections.clear();
+    
+    m_objectCounter = 0;
+    m_applyingRemoteChanges = false;
+    
+    if (m_ownerLabel && m_ownerLabel->getParent()) {
+        m_ownerLabel->setVisible(false);
+    }
 }
 
 void SyncManager::toggleInspector() {

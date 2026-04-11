@@ -120,6 +120,7 @@ class SyncManager{
         std::string getObjectUid(GameObject* obj);
 
         void cleanUpPlayers();
+        void clearAll();
 
         // inspector
         void toggleInspector();

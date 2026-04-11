@@ -106,6 +106,12 @@ class $modify(MyLevelEditorLayer, LevelEditorLayer) {
         
         LevelEditorLayer::onStopPlaytest();
     }
+
+    virtual ~MyLevelEditorLayer() {
+        if (g_sync) {
+            g_sync->clearAll();
+        }
+    }
 };
 
 class $modify(MyEditorUI, EditorUI){
